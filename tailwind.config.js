@@ -14,9 +14,9 @@ export default {
         foreground: 'rgb(var(--foreground) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
         'border-border': 'rgb(var(--border) / <alpha-value>)',
-      },
-      backgroundColor: {
-        background: 'rgb(var(--background) / <alpha-value>)',
+        accent: 'rgb(var(--accent) / <alpha-value>)',
+        'accent-foreground': 'rgb(var(--accent-foreground) / <alpha-value>)',
+        input: 'rgb(var(--input) / <alpha-value>)',
       },
       textColor: {
         'foreground': 'rgb(var(--foreground) / <alpha-value>)',
