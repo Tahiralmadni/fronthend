@@ -38,7 +38,7 @@ function AttendanceRecords() {
   // Add states for multiple selection
   const [selectedRecords, setSelectedRecords] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-
+  
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -55,11 +55,30 @@ function AttendanceRecords() {
         setTeachers(teachersData);
 
         // Load attendance records
+        console.log('Attempting to fetch attendance records...'); 
         const attendanceData = await getAllAttendance();
-        console.log('Loaded attendance records:', attendanceData.length);
-        setRecords(attendanceData);
+        console.log('API Response for attendance records:', attendanceData);
+        console.log('Attendance records type:', typeof attendanceData);
+        console.log('Is array?', Array.isArray(attendanceData));
+        console.log('Length:', attendanceData ? attendanceData.length : 'null or undefined');
+        
+        // Debug attendance records for teacher IDs
+        if (Array.isArray(attendanceData) && attendanceData.length > 0) {
+          console.log('First record structure:', JSON.stringify(attendanceData[0]));
+          console.log('Teacher ID fields available:',
+            attendanceData.map(record => ({
+              id: record._id,
+              teacherId: record.teacherId,
+              teacher: record.teacher,
+              teacherName: record.teacherName
+            }))
+          );
+        }
+        
+        setRecords(attendanceData || []);
       } catch (error) {
         console.error('Error loading data:', error);
+        console.error('Detailed error:', JSON.stringify(error));
         alert(t('components.error.generic'));
       } finally {
         setIsLoading(false);
@@ -84,13 +103,35 @@ function AttendanceRecords() {
     const matchesSearch = record.teacherName?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
     const matchesDate = selectedDate ? record.date === selectedDate : true;
     const matchesStatus = selectedStatus === 'all' ? true : record.status === selectedStatus;
-    const matchesTeacher = selectedTeacher ? record.teacherId === selectedTeacher : true;
+    
+    // Improved teacher matching logic
+    let matchesTeacher = true;
+    if (selectedTeacher) {
+      // Try to match teacher using multiple possible ID fields
+      const recordTeacherId = record.teacherId || record.teacher;
+      // Convert to strings for comparison to handle different ID types
+      matchesTeacher = String(recordTeacherId) === String(selectedTeacher);
+      
+      // Log for debugging
+      console.log(`Record: ${record.date}, TeacherId: ${recordTeacherId}, Selected: ${selectedTeacher}, Matches: ${matchesTeacher}`);
+    }
+    
     return matchesSearch && matchesDate && matchesStatus && matchesTeacher;
   });
 
   // Group records by teacher for the selected date
   const getTeacherNameById = (id) => {
-    const teacher = teachers.find(t => t.id === id);
+    if (!id) return 'Unknown';
+    
+    // Convert the id to string for comparison
+    const teacherId = String(id);
+    
+    // Try to find teacher by different id formats
+    const teacher = teachers.find(t => 
+      String(t.id) === teacherId || 
+      String(t._id) === teacherId
+    );
+    
     return teacher ? teacher.name : 'Unknown';
   };
 
@@ -236,6 +277,7 @@ function AttendanceRecords() {
           <i className="fas fa-clipboard-list dashboard-icon"></i>
           <h1>{t('pages.attendanceRecords.heading')}</h1>
         </div>
+        
         <div className="filters attendance-filters">
           <div className="filter-row">
             <div className="filter-group">
@@ -264,13 +306,25 @@ function AttendanceRecords() {
               <select
                 id="teacher"
                 value={selectedTeacher}
-                onChange={(e) => setSelectedTeacher(e.target.value)}
+                onChange={(e) => {
+                  const newTeacherId = e.target.value;
+                  console.log(`Selected teacher changed to: ${newTeacherId}`);
+                  setSelectedTeacher(newTeacherId);
+                }}
                 className="filter-input"
               >
                 <option value="">{t('pages.attendanceRecords.allTeachers')}</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
-                ))}
+                {teachers.map((teacher) => {
+                  // Debug output for teacher IDs
+                  console.log(`Teacher option: id=${teacher.id}, _id=${teacher._id}`);
+                  // Try to use the most reliable ID format
+                  const teacherId = teacher.id || teacher._id;
+                  return (
+                    <option key={teacherId} value={teacherId}>
+                      {teacher.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className="filter-group">
@@ -301,13 +355,6 @@ function AttendanceRecords() {
               />
             </div>
             <div className="filter-group">
-              <button
-                onClick={() => window.location.reload()}
-                className="refresh-button"
-                disabled={isLoading}
-              >
-                <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('components.buttons.refresh')}
-              </button>
               {selectedRecords.length > 0 && (
                 <button
                   onClick={handleBulkDelete}

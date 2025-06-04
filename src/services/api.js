@@ -54,6 +54,20 @@ const getToken = () => {
     localStorage.setItem('x-auth-token', token);
   }
   
+  // If no token is found, try to get it from currentUser
+  if (!token) {
+    try {
+      const userData = JSON.parse(localStorage.getItem('currentUser'));
+      if (userData?.token) {
+        console.log('Retrieved token from currentUser object');
+        localStorage.setItem('x-auth-token', userData.token);
+        return userData.token;
+      }
+    } catch (e) {
+      console.error('Error parsing currentUser from localStorage:', e);
+    }
+  }
+  
   return token || '';
 };
 
@@ -62,10 +76,15 @@ api.interceptors.request.use(
   config => {
     const token = getToken();
     if (token) {
+      // Ensure we set these common auth header formats for maximum compatibility
       config.headers['x-auth-token'] = token;
-      console.log(`Adding auth header to ${config.url}:`, config.headers['x-auth-token']);
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log(`Adding auth headers to ${config.url}:`, {
+        'x-auth-token': 'Set',
+        'Authorization': 'Bearer token'
+      });
     } else {
-      console.warn(`No auth token available for request to ${config.url}`);
+      console.warn(`⚠️ No auth token available for request to ${config.url}`);
     }
     return config;
   },
@@ -258,10 +277,45 @@ export const getAllAttendance = async (filters = {}) => {
     if (filters.teacherId) queryParams.append('teacherId', filters.teacherId);
     
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-    const data = await api.get(`/attendance${queryString}`);
-    return data.data.attendance;
+    const endpoint = `/attendance${queryString}`;
+    
+    console.log('Making request to getAllAttendance endpoint:', endpoint);
+    console.log('API URL:', API_URL);
+    
+    // Add a direct token check here for this specific call
+    const token = getToken();
+    if (!token) {
+      console.error('No authentication token available for getAllAttendance');
+      alert('No authentication token found. Please log out and log in again.');
+      return [];
+    }
+    
+    // Add both header formats for maximum compatibility
+    const headers = {
+      'x-auth-token': token,
+      'Authorization': `Bearer ${token}`
+    };
+    
+    const data = await api.get(endpoint, { headers });
+    console.log('getAllAttendance response status:', data.status);
+    console.log('getAllAttendance response data:', data.data);
+    
+    // Handle different response formats
+    const attendance = data.data.attendance || data.data.attendanceRecords || data.data || [];
+    console.log('Processed attendance data:', attendance);
+    
+    return attendance;
   } catch (error) {
     console.error('Error getting attendance records:', error.response?.data || error.message);
+    console.error('Full error object:', error);
+    
+    // Specific handling for unauthorized errors
+    if (error.response?.status === 401) {
+      console.error('Authentication token invalid or expired. Please log in again.');
+      // Don't alert here as it might be disruptive, just return empty array
+      return [];
+    }
+    
     return [];
   }
 };
