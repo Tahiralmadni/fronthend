@@ -18,6 +18,12 @@ export default {
         'accent-foreground': 'rgb(var(--accent-foreground) / <alpha-value>)',
         input: 'rgb(var(--input) / <alpha-value>)',
       },
+      backgroundColor: {
+        background: 'rgb(var(--background) / <alpha-value>)',
+        primary: 'rgb(var(--primary) / <alpha-value>)',
+        secondary: 'rgb(var(--secondary) / <alpha-value>)',
+        accent: 'rgb(var(--accent) / <alpha-value>)',
+      },
       textColor: {
         'foreground': 'rgb(var(--foreground) / <alpha-value>)',
       },
