@@ -6,7 +6,7 @@ import * as api from './api';
 // Wrapper functions to handle _id to id conversion
 export const getTeacher = async (teacherId) => {
   try {
-    const teacher = await api.getTeacher(teacherId);
+    const teacher = await api.getTeacherById(teacherId);
     if (teacher && teacher._id) {
       return {
         ...teacher,
