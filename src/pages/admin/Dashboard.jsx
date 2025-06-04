@@ -87,6 +87,29 @@ function AdminDashboard() {
     loadDashboardData();
   }, []);
   
+  // Set up event listener to refresh data when the tab becomes active again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Page became visible again, refreshing dashboard data");
+        loadDashboardData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Add a periodic refresh every 5 minutes
+    const refreshInterval = setInterval(() => {
+      console.log("Periodic refresh of dashboard data");
+      loadDashboardData();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(refreshInterval);
+    };
+  }, []);
+  
   // Handle logout
   const handleLogout = async () => {
     try {
