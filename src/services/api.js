@@ -1,12 +1,11 @@
 import axios from 'axios';
 
 // Base API URL
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-eight-wheat.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true
 });
 
 // Log requests
@@ -34,36 +33,8 @@ api.interceptors.response.use(
     return response;
   },
   error => {
-    if (!error.response) {
-      // Network error (no response received)
-      console.error('Network Error:', error.message);
-      throw new Error('Network error - Please check your internet connection and try again');
-    }
-    
-    // Handle specific error cases
-    if (error.response.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem('x-auth-token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
-      throw new Error('Session expired - Please login again');
-    }
-    
-    if (error.response.status === 403) {
-      throw new Error('Access denied - You do not have permission to perform this action');
-    }
-    
-    // Log the full error for debugging
-    console.error('API Response Error:', {
-      status: error.response.status,
-      data: error.response.data,
-      url: error.config.url,
-      method: error.config.method
-    });
-    
-    // Throw error with message from server or default message
-    throw new Error(error.response.data?.message || 'An error occurred while processing your request');
+    console.error('API Response Error:', error.response || error.message);
+    return Promise.reject(error);
   }
 );
 
