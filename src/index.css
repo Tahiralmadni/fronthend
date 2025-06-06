@@ -30,7 +30,7 @@
   }
   
   * {
-    @apply border-border;
+    @apply border-slate-200 dark:border-slate-700;
   }
   
   html {
