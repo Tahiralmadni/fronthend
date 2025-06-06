@@ -1,12 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import NavigationProgress from './components/ui/NavigationProgress';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/ui/PageTransition';
 import { Toast } from './components/ui/Toast';
 import MobileNavbarWrapper from './components/MobileNavbarWrapper';
+import attendanceService from './services/attendanceService';
 
 // Lazy loaded pages
 const Login = lazy(() => import('./pages/Login'));
@@ -117,6 +118,46 @@ const AnimatedRoutes = () => {
 };
 
 function App() {
+  // Process holidays for the current month on application startup
+  useEffect(() => {
+    const processHolidays = async () => {
+      const { currentUser } = useAuth();
+      
+      // Only process if logged in as admin
+      if (currentUser?.role === 'admin') {
+        try {
+          // Process holidays for the next 30 days
+          const today = new Date();
+          const thirtyDaysLater = new Date();
+          thirtyDaysLater.setDate(today.getDate() + 30);
+          
+          const todayStr = today.toISOString().split('T')[0];
+          const endDateStr = thirtyDaysLater.toISOString().split('T')[0];
+          
+          console.log('Starting holiday processing:', todayStr, 'to', endDateStr);
+          
+          // Process for all teachers
+          // In a real app, you would fetch the teacher list from API
+          const teacherIds = ['all-teachers']; // Special ID for all teachers
+          
+          for (const teacherId of teacherIds) {
+            await attendanceService.processHolidaysForPeriod(
+              teacherId,
+              todayStr,
+              endDateStr
+            );
+          }
+          
+          console.log('Holiday processing completed');
+        } catch (error) {
+          console.error('Error processing holidays:', error);
+        }
+      }
+    };
+    
+    processHolidays();
+  }, []);
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
